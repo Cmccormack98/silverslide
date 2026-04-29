@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SilverSlide Agent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy:     '#1B3A5C',
+            navyDeep: '#122743',
+            amber:    '#E07B39',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    .spinner           { animation: spin 1s linear infinite; }
+    @keyframes fadeIn  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .fade-in           { animation: fadeIn 0.35s ease forwards; }
+    @keyframes prog    { 0%{width:4%} 25%{width:35%} 60%{width:70%} 85%{width:88%} }
+    .progress-bar      { animation: prog 22s ease forwards; }
+    .slide-scroll::-webkit-scrollbar       { height: 6px; }
+    .slide-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 9px; }
+    .slide-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 9px; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .skeleton { animation: pulse 1.5s ease-in-out infinite; background:#e2e8f0; border-radius:6px; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans">
+
+  <!-- Header -->
+  <header class="bg-navy text-white shadow-lg">
+    <div class="max-w-3xl mx-auto px-6 py-5 flex items-center gap-4">
+      <div class="w-1 h-10 bg-amber rounded-full flex-shrink-0"></div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">SilverSlide Agent</h1>
+        <p class="text-slate-300 text-sm mt-0.5">Senior-friendly presentations, generated in seconds</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-10 space-y-6">
+
+    <!-- ── FORM CARD ───────────────────────────────────────────────────── -->
+    <div id="formCard" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+      <label for="topic" class="block text-lg font-semibold text-slate-800 mb-1">
+        What topic would you like a presentation on?
+      </label>
+      <p class="text-slate-500 text-sm mb-3">Type any topic — Claude will write plain-language slides for seniors.</p>
+
+      <input id="topic" type="text"
+        placeholder="e.g. How to avoid phone scams"
+        class="w-full border border-slate-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent transition"
+        onkeydown="if(event.key==='Enter') startPreview()" />
+
+      <!-- Advanced options -->
+      <details class="mt-5 group">
+        <summary class="cursor-pointer text-sm font-medium text-slate-500 hover:text-slate-700 select-none list-none flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+          Advanced options
+        </summary>
+        <div class="mt-4 grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Number of slides</label>
+            <select id="slides" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy">
+              <option value="3">3 slides</option>
+              <option value="4">4 slides</option>
+              <option value="5" selected>5 slides (default)</option>
+              <option value="6">6 slides</option>
+              <option value="7">7 slides</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Audience</label>
+            <input id="audience" type="text" value="general seniors"
+              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Tone</label>
+            <input id="tone" type="text" value="calm and reassuring"
+              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
+          </div>
+          <div class="flex items-center gap-3 pt-5">
+            <input id="includeVideo" type="checkbox" checked class="w-4 h-4 accent-navy cursor-pointer" />
+            <label for="includeVideo" class="text-sm font-medium text-slate-600 cursor-pointer">Include video slide</label>
+          </div>
+        </div>
+      </details>
+
+      <button id="previewBtn" onclick="startPreview()"
+        class="mt-7 w-full bg-navy hover:bg-navyDeep text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 text-base">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        Preview Slides
+      </button>
+    </div>
+
+    <!-- ── NEWS CARD ─────────────────────────────────────────────────── -->
+    <div id="newsCard" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="font-semibold text-slate-800">Today's Topic Ideas</h2>
+          <p class="text-slate-400 text-xs mt-0.5">Click any headline to use it as your presentation topic</p>
+        </div>
+        <button onclick="loadNews()" id="refreshBtn"
+          class="text-xs text-slate-400 hover:text-navy flex items-center gap-1 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-5">
+        <!-- Pop Culture -->
+        <div>
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+            🎬 Pop Culture
+          </h3>
+          <div id="popNews" class="space-y-2">
+            <div class="skeleton h-14 w-full"></div>
+            <div class="skeleton h-14 w-full"></div>
+            <div class="skeleton h-14 w-full"></div>
+          </div>
+        </div>
+
+        <!-- Serious News -->
+        <div>
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+            📰 News &amp; Economics
+          </h3>
+          <div id="seriousNews" class="space-y-2">
+            <div class="skeleton h-14 w-full"></div>
+            <div class="skeleton h-14 w-full"></div>
+            <div class="skeleton h-14 w-full"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LOADING CARD ────────────────────────────────────────────────── -->
+    <div id="loadingCard" class="hidden fade-in bg-white rounded-2xl shadow-sm border border-slate-200 p-10 text-center">
+      <svg class="spinner w-10 h-10 text-navy mx-auto mb-5" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+      </svg>
+      <p class="text-lg font-semibold text-slate-800 mb-1">Generating your slides…</p>
+      <p id="loadingStep" class="text-slate-500 text-sm mb-6">Writing senior-friendly content with Claude…</p>
+      <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+        <div class="progress-bar h-2 bg-amber rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- ── PREVIEW CARD ────────────────────────────────────────────────── -->
+    <div id="previewCard" class="hidden fade-in space-y-5">
+
+      <!-- Header row -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 id="deckTitle" class="text-xl font-bold text-slate-800"></h2>
+          <p id="deckMeta" class="text-slate-500 text-sm mt-0.5"></p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="editBtn" onclick="toggleEditMode()"
+            class="text-sm font-medium text-navy hover:text-navyDeep border border-navy hover:bg-slate-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            <span id="editBtnLabel">Edit Slides</span>
+          </button>
+          <button onclick="reset()"
+            class="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1.5 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Start over
+          </button>
+        </div>
+      </div>
+
+      <!-- QA banner -->
+      <div id="qaBanner" class="hidden rounded-xl px-5 py-3 text-sm font-medium flex items-center gap-2"></div>
+
+      <!-- AI Edit Prompt (visible in edit mode only) -->
+      <div id="aiPromptBox" class="hidden bg-slate-50 border border-slate-200 rounded-2xl p-5">
+        <p class="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+          <span>✨</span> Ask AI to update your slides
+        </p>
+        <div class="flex gap-2">
+          <input id="aiPromptInput" type="text"
+            placeholder='e.g. "Add a slide about Medicare" or "Make image hints more vivid"'
+            class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            onkeydown="if(event.key==='Enter') applyAiEdit()" />
+          <button id="aiApplyBtn" onclick="applyAiEdit()"
+            class="bg-navy hover:bg-navyDeep text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-2 flex-shrink-0">
+            <svg id="aiSpinner" class="hidden spinner w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+            </svg>
+            <span id="aiApplyLabel">Apply</span>
+          </button>
+        </div>
+        <div id="aiError" class="hidden mt-2 text-xs text-red-600"></div>
+        <p class="text-xs text-slate-400 mt-2">Try: "Add pictures", "Add a slide about side effects", "Make bullets shorter", "Change the tone to be more energetic"</p>
+      </div>
+
+      <!-- Slide cards carousel -->
+      <div class="slide-scroll overflow-x-auto pb-3">
+        <div id="slideGrid" class="flex gap-4 w-max"></div>
+      </div>
+
+      <!-- Video row -->
+      <div id="videoRow" class="hidden bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-5">
+        <img id="videoThumb" src="" alt="Video thumbnail" class="w-28 h-16 object-cover rounded-lg flex-shrink-0" />
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Suggested Video</p>
+          <p id="videoTitle" class="font-semibold text-slate-800 text-sm truncate"></p>
+          <p id="videoMeta"  class="text-slate-500 text-xs mt-0.5"></p>
+        </div>
+        <a id="videoLink" href="#" target="_blank"
+          class="flex-shrink-0 text-xs font-semibold text-navy hover:underline">Watch ↗</a>
+      </div>
+
+      <!-- Speaking Script -->
+      <div id="scriptSection" class="hidden bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <button onclick="toggleScript()"
+          class="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📄</span>
+            <span class="font-semibold text-slate-800">Speaking Script</span>
+            <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full ml-1">click to expand</span>
+          </div>
+          <svg id="scriptChevron" class="w-4 h-4 text-slate-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+        <div id="scriptBody" class="hidden border-t border-slate-100 px-6 py-5 space-y-5 max-h-[500px] overflow-y-auto">
+          <p class="text-xs text-slate-400 italic">Read each section aloud as you present the corresponding slide.</p>
+          <div id="scriptContent"></div>
+        </div>
+      </div>
+
+      <!-- Download button -->
+      <button id="downloadBtn" onclick="downloadPptx()"
+        class="w-full bg-amber hover:bg-orange-500 text-white font-bold py-4 px-6 rounded-xl transition-colors duration-200 flex items-center justify-center gap-3 text-base shadow-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Download Presentation (.pptx)
+      </button>
+    </div>
+
+    <!-- ── SUCCESS CARD ────────────────────────────────────────────────── -->
+    <div id="successCard" class="hidden fade-in bg-white rounded-2xl shadow-sm border border-slate-200 p-10 text-center">
+      <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <p class="text-xl font-bold text-slate-800 mb-1">Download started!</p>
+      <p class="text-slate-500 text-sm mb-6">Check your Downloads folder for the .pptx file.</p>
+      <button onclick="reset()"
+        class="bg-navy hover:bg-navyDeep text-white font-semibold py-2.5 px-8 rounded-xl transition-colors duration-200">
+        Make another presentation
+      </button>
+    </div>
+
+    <!-- ── ERROR CARD ──────────────────────────────────────────────────── -->
+    <div id="errorCard" class="hidden fade-in bg-white rounded-2xl shadow-sm border border-red-200 p-10 text-center">
+      <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </div>
+      <p class="text-xl font-bold text-slate-800 mb-1">Something went wrong</p>
+      <p id="errorMsg" class="text-red-600 text-sm mb-6"></p>
+      <button onclick="reset()"
+        class="bg-navy hover:bg-navyDeep text-white font-semibold py-2.5 px-8 rounded-xl transition-colors duration-200">
+        Try again
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    // ── State ────────────────────────────────────────────────────────────
+    let currentJobId   = null;
+    let stepTimer      = null;
+    let currentSlides  = [];   // live copy of slides (may be edited)
+    let editMode       = false;
+
+    // ── News ─────────────────────────────────────────────────────────────
+    async function loadNews() {
+      // Show skeletons while refreshing
+      ["popNews","seriousNews"].forEach(id => {
+        document.getElementById(id).innerHTML =
+          '<div class="skeleton h-14 w-full"></div>'.repeat(3);
+      });
+
+      try {
+        const res  = await fetch("/news");
+        const data = await res.json();
+        renderNews("popNews",     data.pop_culture || [], "No pop culture headlines found");
+        renderNews("seriousNews", data.serious     || [], "No news headlines found");
+      } catch {
+        renderNews("popNews",     [], "Could not load headlines");
+        renderNews("seriousNews", [], "Could not load headlines");
+      }
+    }
+
+    function renderNews(containerId, items, emptyMsg) {
+      const el = document.getElementById(containerId);
+      if (!items.length) {
+        el.innerHTML = `<p class="text-slate-400 text-sm py-2">${emptyMsg}</p>`;
+        return;
+      }
+      el.innerHTML = items.map(item => `
+        <button class="headline-btn w-full text-left p-3 rounded-xl border border-slate-100 hover:border-navy hover:bg-slate-50 transition-all duration-150 group"
+          data-title="${esc(item.title)}">
+          <p class="text-sm text-slate-700 group-hover:text-navy leading-snug line-clamp-2">${esc(item.title)}</p>
+          <p class="text-xs text-slate-400 mt-1">${esc(item.source)}</p>
+        </button>
+      `).join("");
+
+      // Attach click handlers after rendering
+      el.querySelectorAll(".headline-btn").forEach(btn => {
+        btn.addEventListener("click", () => useTopic(btn.dataset.title));
+      });
+    }
+
+    function useTopic(title) {
+      document.getElementById("topic").value = title;
+      document.getElementById("topic").scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById("topic").focus();
+    }
+
+    // Load news on page open
+    window.addEventListener("DOMContentLoaded", loadNews);
+
+    const STEPS = [
+      "Writing senior-friendly content with Claude…",
+      "Searching for a relevant short video…",
+      "Running accessibility & QA checks…",
+      "Almost done…",
+    ];
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    function show(id) {
+      ["formCard","loadingCard","previewCard","successCard","errorCard"]
+        .forEach(c => document.getElementById(c).classList.add("hidden"));
+      document.getElementById(id).classList.remove("hidden");
+      // Show news card only on the form and success screens
+      const newsCard = document.getElementById("newsCard");
+      if (id === "formCard" || id === "successCard") {
+        newsCard.classList.remove("hidden");
+      } else {
+        newsCard.classList.add("hidden");
+      }
+    }
+
+    function showError(msg) {
+      if (stepTimer) clearTimeout(stepTimer);
+      document.getElementById("errorMsg").textContent = msg;
+      show("errorCard");
+    }
+
+    function reset() {
+      if (stepTimer) clearTimeout(stepTimer);
+      currentJobId = null;
+      show("formCard");
+      document.getElementById("previewBtn").disabled   = false;
+      document.getElementById("downloadBtn").disabled  = false;
+    }
+
+    function tickStep(i) {
+      if (i >= STEPS.length) return;
+      document.getElementById("loadingStep").textContent = STEPS[i];
+      stepTimer = setTimeout(() => tickStep(i + 1), 6500);
+    }
+
+    // ── Slide card builders ──────────────────────────────────────────────
+    function makeSlideCard(slide, index) {
+      const type   = slide.slide_type;
+      const total  = index + 1;
+      const label  = type.charAt(0).toUpperCase() + type.slice(1);
+
+      const card   = document.createElement("div");
+      card.style   = "width:300px; flex-shrink:0;";
+      card.className = "rounded-xl overflow-hidden border border-slate-200 shadow-sm";
+
+      // Slide number badge
+      const badge = `<div class="px-4 pt-3 pb-1 flex items-center justify-between bg-slate-50 border-b border-slate-100">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">${label}</span>
+        <span class="text-xs text-slate-400">Slide ${total}</span>
+      </div>`;
+
+      let body = "";
+
+      if (type === "title") {
+        body = `<div class="bg-navy text-white p-6 min-h-[160px] flex flex-col justify-center">
+          <div class="w-8 h-1 bg-amber rounded-full mb-3"></div>
+          <h3 class="text-base font-bold leading-snug">${esc(slide.title)}</h3>
+        </div>`;
+
+      } else if (type === "summary") {
+        const bullets = (slide.bullets || []).map(b =>
+          `<li class="flex items-start gap-2 text-sm text-slate-200">
+            <span class="text-amber mt-0.5 flex-shrink-0">✓</span>
+            <span>${esc(b.text)}</span>
+          </li>`
+        ).join("");
+        body = `<div class="bg-navy text-white p-5 min-h-[160px]">
+          <h3 class="text-sm font-bold mb-3">${esc(slide.title)}</h3>
+          <ul class="space-y-2">${bullets}</ul>
+        </div>`;
+
+      } else {
+        // content slide
+        const bullets = (slide.bullets || []).map(b =>
+          `<li class="flex items-start gap-2 text-sm text-slate-700">
+            <span class="text-amber font-bold mt-0.5 flex-shrink-0">•</span>
+            <span>${esc(b.text)}</span>
+          </li>`
+        ).join("");
+        const hint = slide.image_hint || "";
+        body = `<div class="bg-white min-h-[160px]">
+          <div class="bg-navy px-5 py-2.5">
+            <h3 class="text-sm font-semibold text-white leading-snug">${esc(slide.title)}</h3>
+          </div>
+          <ul class="p-4 space-y-1.5">${bullets}</ul>
+          ${hint ? `<div class="thumbnail-slot border-t border-slate-100 overflow-hidden bg-slate-50 h-24 flex items-center justify-center" data-hint="${esc(hint)}">
+            <span class="text-xs text-slate-400">🖼 Loading image…</span>
+          </div>` : ""}
+        </div>`;
+      }
+
+      card.innerHTML = badge + body;
+      return card;
+    }
+
+    function esc(str) {
+      return (str || "")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    // ── Step 1: Preview ──────────────────────────────────────────────────
+    async function startPreview() {
+      const topic = document.getElementById("topic").value.trim();
+      if (!topic) {
+        const inp = document.getElementById("topic");
+        inp.classList.add("ring-2","ring-red-400","border-red-400");
+        inp.focus();
+        setTimeout(() => inp.classList.remove("ring-2","ring-red-400","border-red-400"), 1800);
+        return;
+      }
+
+      document.getElementById("previewBtn").disabled = true;
+      show("loadingCard");
+      tickStep(0);
+
+      try {
+        const res = await fetch("/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topic,
+            slides:        document.getElementById("slides").value,
+            audience:      document.getElementById("audience").value,
+            tone:          document.getElementById("tone").value,
+            include_video: document.getElementById("includeVideo").checked,
+          }),
+        });
+
+        if (stepTimer) clearTimeout(stepTimer);
+
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Preview failed");
+
+        currentJobId = json.job_id;
+        renderPreview(json);
+
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    // ── Speaking Script ──────────────────────────────────────────────────
+    function buildScript(slides, videoData) {
+      const container = document.getElementById("scriptContent");
+      const allSlides = [...slides];
+
+      const icons = { title: "🎤", content: "📋", summary: "🎯", video: "🎬" };
+      const labels = { title: "Opening", content: "Content", summary: "Closing", video: "Video" };
+
+      let html = allSlides.map((slide, i) => {
+        const icon  = icons[slide.slide_type]  || "📋";
+        const label = labels[slide.slide_type] || "Slide";
+        const notes = (slide.speaker_notes || "").trim();
+        const bulletText = (slide.bullets || []).map(b => `• ${b.text}`).join("\n");
+
+        return `
+          <div class="border-l-4 border-amber pl-4 pb-1">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">
+              ${icon} Slide ${i + 1} — ${label}: ${esc(slide.title)}
+            </p>
+            <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">${esc(notes || "(No speaker notes for this slide)")}</p>
+            ${bulletText && slide.slide_type !== "title" ? `
+            <div class="mt-2 text-xs text-slate-400 whitespace-pre-line font-mono bg-slate-50 rounded px-3 py-2">${esc(bulletText)}</div>` : ""}
+          </div>`;
+      }).join('<div class="border-t border-dashed border-slate-100 my-1"></div>');
+
+      // Add video note if present
+      if (videoData) {
+        html += `<div class="border-t border-dashed border-slate-100 my-1"></div>
+          <div class="border-l-4 border-amber pl-4 pb-1">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">🎬 Video Slide</p>
+            <p class="text-sm text-slate-700 leading-relaxed">
+              "Now let's watch a short video: <em>${esc(videoData.title)}</em>"<br/>
+              Click the link on the slide to play it. It runs about ${esc(videoData.duration || "a minute or two")}.
+              After watching, feel free to pause and ask questions.
+            </p>
+          </div>`;
+      }
+
+      container.innerHTML = html;
+      document.getElementById("scriptSection").classList.remove("hidden");
+    }
+
+    function toggleScript() {
+      const body    = document.getElementById("scriptBody");
+      const chevron = document.getElementById("scriptChevron");
+      const open    = !body.classList.contains("hidden");
+      body.classList.toggle("hidden", open);
+      chevron.style.transform = open ? "" : "rotate(180deg)";
+    }
+
+    // ── Edit mode ────────────────────────────────────────────────────────
+    function toggleEditMode() {
+      editMode = !editMode;
+      document.getElementById("editBtnLabel").textContent = editMode ? "Done Editing" : "Edit Slides";
+      document.getElementById("editBtn").classList.toggle("bg-navy",    editMode);
+      document.getElementById("editBtn").classList.toggle("text-white", editMode);
+      document.getElementById("editBtn").classList.toggle("text-navy",  !editMode);
+      document.getElementById("downloadBtn").classList.toggle("hidden", editMode);
+      document.getElementById("aiPromptBox").classList.toggle("hidden", !editMode);
+
+      if (editMode) {
+        renderEditCards();
+        document.getElementById("aiPromptInput").focus();
+      } else {
+        saveEdits();
+        renderSlideCards();
+      }
+    }
+
+    // ── AI-powered edit ──────────────────────────────────────────────────
+    async function applyAiEdit() {
+      if (!currentJobId) return;
+      const instruction = document.getElementById("aiPromptInput").value.trim();
+      if (!instruction) {
+        document.getElementById("aiPromptInput").focus();
+        return;
+      }
+
+      // Save any manual edits first
+      saveEdits();
+
+      // Loading state
+      document.getElementById("aiApplyBtn").disabled  = true;
+      document.getElementById("aiSpinner").classList.remove("hidden");
+      document.getElementById("aiApplyLabel").textContent = "Updating…";
+      document.getElementById("aiError").classList.add("hidden");
+
+      try {
+        const res = await fetch(`/refine/${currentJobId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ instruction, slides: currentSlides }),
+        });
+
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Refinement failed");
+
+        // Update state and re-render
+        currentSlides = json.slides;
+        document.getElementById("aiPromptInput").value = "";
+        renderEditCards();
+        fetchThumbnails();
+        buildScript(currentSlides, null);
+
+      } catch (err) {
+        document.getElementById("aiError").textContent = err.message;
+        document.getElementById("aiError").classList.remove("hidden");
+      } finally {
+        document.getElementById("aiApplyBtn").disabled  = false;
+        document.getElementById("aiSpinner").classList.add("hidden");
+        document.getElementById("aiApplyLabel").textContent = "Apply";
+      }
+    }
+
+    function renderEditCards() {
+      const grid = document.getElementById("slideGrid");
+      grid.innerHTML = currentSlides.map((slide, i) => {
+        const label = slide.slide_type.charAt(0).toUpperCase() + slide.slide_type.slice(1);
+        const isNavy = slide.slide_type === "title" || slide.slide_type === "summary";
+        const bulletInputs = (slide.bullets || []).map((b, bi) => `
+          <div class="flex items-center gap-1.5">
+            <span class="text-amber font-bold text-sm flex-shrink-0">${slide.slide_type === "summary" ? "✓" : "•"}</span>
+            <input class="bullet-input flex-1 text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-navy"
+                   value="${esc(b.text)}" data-idx="${i}" data-bidx="${bi}" />
+          </div>`).join("");
+        return `
+          <div style="width:300px; flex-shrink:0" class="rounded-xl overflow-hidden border-2 border-navy shadow-md">
+            <div class="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">${label} · Slide ${i + 1}</span>
+            </div>
+            <div class="${isNavy ? "bg-navy" : "bg-white"} px-4 py-3">
+              <label class="text-xs font-semibold ${isNavy ? "text-slate-400" : "text-slate-500"} uppercase tracking-wide block mb-1">Title</label>
+              <input class="title-input w-full text-sm font-semibold border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber
+                            ${isNavy ? "bg-navyDeep border-slate-600 text-white placeholder-slate-500" : "border-slate-200 text-slate-800"}"
+                     value="${esc(slide.title)}" data-idx="${i}" />
+            </div>
+            ${slide.bullets && slide.bullets.length > 0 ? `
+            <div class="${isNavy ? "bg-navyDeep" : "bg-slate-50"} px-4 pb-4 pt-2 space-y-2">
+              <label class="text-xs font-semibold ${isNavy ? "text-slate-400" : "text-slate-500"} uppercase tracking-wide block mb-1.5">Bullet Points</label>
+              ${bulletInputs}
+            </div>` : ""}
+          </div>`;
+      }).join("");
+    }
+
+    function saveEdits() {
+      document.querySelectorAll(".title-input").forEach(inp => {
+        const i = parseInt(inp.dataset.idx);
+        if (currentSlides[i]) currentSlides[i].title = inp.value;
+      });
+      document.querySelectorAll(".bullet-input").forEach(inp => {
+        const i  = parseInt(inp.dataset.idx);
+        const bi = parseInt(inp.dataset.bidx);
+        if (currentSlides[i]?.bullets?.[bi]) currentSlides[i].bullets[bi].text = inp.value;
+      });
+    }
+
+    function renderSlideCards() {
+      const grid = document.getElementById("slideGrid");
+      grid.innerHTML = "";
+      currentSlides.forEach((slide, i) => grid.appendChild(makeSlideCard(slide, i)));
+      fetchThumbnails();
+    }
+
+    async function fetchThumbnails() {
+      const slots = document.querySelectorAll(".thumbnail-slot");
+      if (!slots.length) return;
+
+      const hints = [...new Set([...slots].map(s => s.dataset.hint).filter(Boolean))];
+      if (!hints.length) return;
+
+      try {
+        const res  = await fetch("/thumbnails", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ hints }),
+        });
+        const urls = await res.json();
+
+        slots.forEach(slot => {
+          const url = urls[slot.dataset.hint];
+          if (url) {
+            slot.innerHTML = `<img src="${url}" alt="slide image"
+              class="w-full h-full object-cover" />`;
+          } else {
+            slot.innerHTML = `<span class="text-xs text-slate-400 italic px-3">No image found for this hint</span>`;
+          }
+        });
+      } catch {
+        slots.forEach(s => s.classList.add("hidden"));
+      }
+    }
+
+    function renderPreview(data) {
+      // Deck title + meta
+      document.getElementById("deckTitle").textContent = data.title;
+      const slideCount = data.slides.length + (data.video ? 1 : 0);
+      document.getElementById("deckMeta").textContent =
+        `${slideCount} slides  ·  Risk: ${data.risk_level || "low"}`;
+
+      // QA banner
+      const banner = document.getElementById("qaBanner");
+      const qa = data.qa || {};
+      if (qa.issues && qa.issues.length > 0) {
+        banner.className = "rounded-xl px-5 py-3 text-sm font-medium flex items-center gap-2 bg-red-50 text-red-700 border border-red-200";
+        banner.innerHTML = `<span>⚠️</span><span>${qa.issues.join(" · ")}</span>`;
+        banner.classList.remove("hidden");
+      } else if (qa.warnings && qa.warnings.length > 0) {
+        banner.className = "rounded-xl px-5 py-3 text-sm font-medium flex items-center gap-2 bg-amber-50 text-amber-800 border border-amber-200";
+        banner.innerHTML = `<span>📝</span><span>${qa.warnings[0]}${qa.warnings.length > 1 ? ` (+${qa.warnings.length - 1} more)` : ""}</span>`;
+        banner.classList.remove("hidden");
+      } else {
+        banner.className = "rounded-xl px-5 py-3 text-sm font-medium flex items-center gap-2 bg-green-50 text-green-700 border border-green-200";
+        banner.innerHTML = `<span>✅</span><span>QA passed — ready to present</span>`;
+        banner.classList.remove("hidden");
+      }
+
+      // Store slides for editing
+      currentSlides = JSON.parse(JSON.stringify(data.slides));
+      editMode = false;
+      document.getElementById("editBtnLabel").textContent = "Edit Slides";
+      document.getElementById("editBtn").classList.remove("bg-navy","text-white");
+      document.getElementById("editBtn").classList.add("text-navy");
+      document.getElementById("downloadBtn").classList.remove("hidden");
+
+      // Slide cards
+      renderSlideCards();
+
+      // Video row
+      const videoRow = document.getElementById("videoRow");
+      if (data.video) {
+        document.getElementById("videoTitle").textContent = data.video.title;
+        document.getElementById("videoMeta").textContent =
+          `${data.video.channel}  ·  ${data.video.duration || ""}`;
+        document.getElementById("videoLink").href = data.video.url;
+        if (data.video.thumbnail_base64) {
+          document.getElementById("videoThumb").src = data.video.thumbnail_base64;
+        }
+        videoRow.classList.remove("hidden");
+      } else {
+        videoRow.classList.add("hidden");
+      }
+
+      // Build speaking script
+      buildScript(data.slides, data.video);
+
+      show("previewCard");
+    }
+
+    // ── Step 2: Download ─────────────────────────────────────────────────
+    async function downloadPptx() {
+      if (!currentJobId) { showError("No preview found — please generate a preview first."); return; }
+
+      document.getElementById("downloadBtn").disabled = true;
+      document.getElementById("downloadBtn").textContent = "Building your .pptx…";
+
+      try {
+        const res = await fetch(`/download/${currentJobId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slides: currentSlides }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Build failed" }));
+          throw new Error(err.error);
+        }
+
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        const safe = document.getElementById("deckTitle").textContent
+          .replace(/[^a-z0-9 ]/gi,"").trim().replace(/ /g,"_").slice(0,40);
+        a.href     = url;
+        a.download = `SilverSlide_${safe}.pptx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        currentJobId = null;
+        show("successCard");
+
+      } catch (err) {
+        document.getElementById("downloadBtn").disabled = false;
+        document.getElementById("downloadBtn").innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          Download Presentation (.pptx)`;
+        showError(err.message);
+      }
+    }
+  </script>
+</body>
+</html>

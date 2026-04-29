@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(npm install:*)",
+      "Bash(where node:*)",
+      "Bash(where npm:*)",
+      "Bash(cmd /c \"where node 2>&1 & where npm 2>&1 & node --version 2>&1\")",
+      "Bash(cmd /c \"node --version\")",
+      "Bash(powershell -Command \"Get-Command node, npm -ErrorAction SilentlyContinue | Select-Object Name, Source\")",
+      "Bash(powershell -Command \"node --version; npm --version\")",
+      "Bash(powershell -Command \"python --version; pip --version\")",
+      "Bash(powershell -Command \"Get-ChildItem ''C:\\\\Users\\\\cmcco\\\\AppData\\\\Local\\\\Programs\\\\'' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(powershell -Command \"Get-Command python* -ErrorAction SilentlyContinue | Select-Object Name, Source\")",
+      "Bash(powershell -Command \"Get-ChildItem ''C:\\\\Python*'' -ErrorAction SilentlyContinue\")",
+      "Bash(powershell -Command \"Get-ChildItem Env: | Where-Object {$_Name -match ''PYTHON''}\")",
+      "Bash(powershell -Command \"py --version\")",
+      "Bash(powershell -Command \"py -3 --version\")",
+      "Bash(powershell -Command \"Get-Item ''C:\\\\Users\\\\cmcco\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\python.exe'' | Select-Object FullName, Length\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''C:\\\\Users\\\\cmcco\\\\OneDrive\\\\Desktop\\\\DSAIL'' -Recurse | Where-Object { -not $_PSIsContainer -and $_FullName -notmatch ''node_modules'' } | Select-Object @{N=''File'';E={$_FullName.Replace\\(''C:\\\\Users\\\\cmcco\\\\OneDrive\\\\Desktop\\\\DSAIL\\\\'',''''\\)}} | Format-Table -AutoSize\")",
+      "Bash(powershell -Command \"python -m pip --version\")",
+      "Bash(powershell -Command \"python -m pip list 2>&1 | Select-String -Pattern ''anthropic|pydantic|requests|pptx|youtube''\")",
+      "WebSearch",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "silverslide-pptx-builder",
+  "version": "1.0.0",
+  "description": "Node.js PPTX builder for SilverSlide Agent",
+  "private": true,
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "pptxgenjs": "^3.12.0"
+  }
+}
