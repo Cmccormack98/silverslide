@@ -105,6 +105,12 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def _require_login_json():
+    """For deck-only routes: return JSON 401 if not logged in, else None."""
+    if not session.get("username"):
+        return jsonify({"error": "Please sign in to use saved decks.", "login_required": True}), 401
+    return None
+
 # ── RSS feed definitions (Google News RSS — most reliable, no auth needed) ────
 POP_FEEDS = [
     ("Google News", "https://news.google.com/rss/search?q=celebrity+music+movies+entertainment+pop+culture&hl=en-US&gl=US&ceid=US:en"),
@@ -221,13 +227,11 @@ def logout():
 
 
 @app.route("/")
-@login_required
 def index():
-    return render_template("index.html", username=session["username"])
+    return render_template("index.html", username=session.get("username"))
 
 
 @app.route("/news")
-@login_required
 def news():
     """Return 3 pop-culture + 3 serious/economic headlines from RSS feeds."""
     try:
@@ -237,7 +241,6 @@ def news():
 
 
 @app.route("/preview", methods=["POST"])
-@login_required
 def preview():
     """Step 1 — Generate content with Claude, return slide data for browser preview."""
     from silverslide.content import generate_deck_content
@@ -324,7 +327,6 @@ def preview():
 
 
 @app.route("/thumbnails", methods=["POST"])
-@login_required
 def thumbnails():
     """Return Pexels thumbnail URLs for a list of image hints (for preview cards)."""
     key = os.environ.get("PEXELS_API_KEY", "")
@@ -382,7 +384,6 @@ def debug_pexels():
 
 
 @app.route("/refine/<job_id>", methods=["POST"])
-@login_required
 def refine(job_id):
     """Apply a natural-language edit instruction to the slides using Claude."""
     from silverslide.content import refine_slides
@@ -410,7 +411,6 @@ def refine(job_id):
 
 
 @app.route("/download/<job_id>", methods=["POST"])
-@login_required
 def download(job_id):
     """Step 2 — Build PPTX from cached preview data and send for download."""
     if job_id not in _deck_cache:
@@ -465,14 +465,16 @@ def download(job_id):
 # ── Saved Decks ───────────────────────────────────────────────────────────────
 
 @app.route("/decks", methods=["GET"])
-@login_required
 def list_decks():
+    err = _require_login_json()
+    if err: return err
     return jsonify(_load_decks(session["username"]))
 
 
 @app.route("/decks/save/<job_id>", methods=["POST"])
-@login_required
 def save_deck(job_id):
+    err = _require_login_json()
+    if err: return err
     if job_id not in _deck_cache:
         return jsonify({"error": "Preview expired."}), 404
     payload = dict(_deck_cache[job_id])
@@ -487,15 +489,17 @@ def save_deck(job_id):
 
 
 @app.route("/decks/<deck_id>", methods=["DELETE"])
-@login_required
 def delete_deck(deck_id):
+    err = _require_login_json()
+    if err: return err
     _delete_deck_db(deck_id, session["username"])
     return jsonify({"message": "Deleted"})
 
 
 @app.route("/decks/<deck_id>/download", methods=["POST"])
-@login_required
 def download_saved(deck_id):
+    err = _require_login_json()
+    if err: return err
     payload = _get_deck_db(deck_id, session["username"])
     if not payload:
         return jsonify({"error": "Deck not found."}), 404
@@ -526,7 +530,6 @@ def download_saved(deck_id):
 # ── Email ─────────────────────────────────────────────────────────────────────
 
 @app.route("/email/<job_id>", methods=["POST"])
-@login_required
 def email_deck(job_id):
     if job_id not in _deck_cache:
         return jsonify({"error": "Preview expired — please regenerate first."}), 404

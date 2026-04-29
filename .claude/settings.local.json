@@ -22,7 +22,8 @@
       "Bash(powershell -Command \"python -m pip --version\")",
       "Bash(powershell -Command \"python -m pip list 2>&1 | Select-String -Pattern ''anthropic|pydantic|requests|pptx|youtube''\")",
       "WebSearch",
-      "mcp__Claude_in_Chrome__tabs_context_mcp"
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

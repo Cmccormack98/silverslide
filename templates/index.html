@@ -43,11 +43,18 @@
         <p class="text-slate-300 text-sm mt-0.5">Senior-friendly presentations, generated in seconds</p>
       </div>
       <div class="flex items-center gap-3 ml-auto">
-        <span class="text-slate-300 text-sm hidden sm:inline">👤 {{ username }}</span>
-        <a href="/logout"
-           class="bg-white/10 hover:bg-white/20 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors duration-150 border border-white/20">
-          Sign out
-        </a>
+        {% if username %}
+          <span class="text-slate-300 text-sm hidden sm:inline">👤 {{ username }}</span>
+          <a href="/logout"
+             class="bg-white/10 hover:bg-white/20 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors duration-150 border border-white/20">
+            Sign out
+          </a>
+        {% else %}
+          <a href="/login"
+             class="bg-amber hover:bg-amber/90 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors duration-150">
+            Sign in to save decks
+          </a>
+        {% endif %}
       </div>
     </div>
   </header>
@@ -173,7 +180,16 @@
     <!-- ── SAVED DECKS ───────────────────────────────────────────────── -->
     <div id="savedDecksSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
       <h2 class="font-semibold text-slate-800 mb-4 flex items-center gap-2">📁 Saved Decks</h2>
-      <div id="savedDecksList" class="space-y-2"></div>
+      {% if username %}
+        <div id="savedDecksList" class="space-y-2"></div>
+      {% else %}
+        <div class="text-center py-6">
+          <p class="text-slate-500 text-sm mb-3">Sign in to save and view your past presentations.</p>
+          <a href="/login" class="inline-block bg-navy hover:bg-navyDeep text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
+            Sign in
+          </a>
+        </div>
+      {% endif %}
     </div>
 
     <!-- ── LOADING CARD ────────────────────────────────────────────────── -->
@@ -504,15 +520,21 @@
     // ── Saved Decks ──────────────────────────────────────────────────────
     async function loadSavedDecks() {
       try {
-        const res   = await fetch("/decks");
-        const decks = await res.json();
-        renderSavedDecks(decks);
+        const res  = await fetch("/decks");
+        const json = await res.json();
+        if (res.status === 401) {
+          // Not logged in — show the section with the sign-in prompt (already rendered by Jinja)
+          document.getElementById("savedDecksSection").classList.remove("hidden");
+          return;
+        }
+        renderSavedDecks(json);
       } catch { /* silent */ }
     }
 
     function renderSavedDecks(decks) {
       const section = document.getElementById("savedDecksSection");
       const list    = document.getElementById("savedDecksList");
+      if (!list) { section.classList.remove("hidden"); return; } // not logged in — show sign-in prompt
       if (!decks.length) { section.classList.add("hidden"); return; }
       section.classList.remove("hidden");
       list.innerHTML = decks.map(d => `
@@ -544,6 +566,12 @@
           body:    JSON.stringify({ slides: currentSlides }),
         });
         const json = await res.json();
+        if (res.status === 401) {
+          document.getElementById("saveBtnLabel").textContent = "Save";
+          btn.disabled = false;
+          if (confirm("Sign in to save decks. Go to sign-in page?")) window.location.href = "/login";
+          return;
+        }
         if (res.ok) {
           document.getElementById("saveBtnLabel").textContent = "Saved ✓";
           loadSavedDecks();
