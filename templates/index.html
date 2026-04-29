@@ -298,29 +298,16 @@
         </div>
       </div>
 
-      <!-- Email + Save row -->
-      <div class="flex gap-2">
-        <div class="flex-1 flex gap-2">
-          <input id="emailInput" type="email" placeholder="Email the deck to…"
-            class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
-            onkeydown="if(event.key==='Enter') sendEmail()" />
-          <button onclick="sendEmail()" id="emailBtn"
-            class="bg-navy hover:bg-navyDeep text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-1.5 flex-shrink-0">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-            </svg>
-            <span id="emailBtnLabel">Send</span>
-          </button>
-        </div>
+      <!-- Save row -->
+      <div class="flex gap-2 justify-end">
         <button onclick="saveDeck()" id="saveBtn"
-          class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-1.5 flex-shrink-0">
+          class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
           </svg>
           <span id="saveBtnLabel">Save</span>
         </button>
       </div>
-      <div id="emailStatus" class="hidden text-xs text-center py-1 rounded-lg"></div>
 
       <!-- Download button -->
       <button id="downloadBtn" onclick="downloadPptx()"
@@ -341,7 +328,26 @@
         </svg>
       </div>
       <p class="text-xl font-bold text-slate-800 mb-1">Download started!</p>
-      <p class="text-slate-500 text-sm mb-6">Check your Downloads folder for the .pptx file.</p>
+      <p class="text-slate-500 text-sm mb-4">Check your Downloads folder for the .pptx file.</p>
+
+      <!-- Email after download -->
+      <div class="max-w-sm mx-auto mb-6">
+        <p class="text-sm font-medium text-slate-600 mb-2">Want to email the deck too?</p>
+        <div class="flex gap-2">
+          <input id="emailInput" type="email" placeholder="Enter email address…"
+            class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            onkeydown="if(event.key==='Enter') sendEmail()" />
+          <button onclick="sendEmail()" id="emailBtn"
+            class="bg-navy hover:bg-navyDeep text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-1.5 flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            <span id="emailBtnLabel">Send</span>
+          </button>
+        </div>
+        <div id="emailStatus" class="hidden text-xs text-center py-1.5 rounded-lg mt-2"></div>
+      </div>
+
       <button onclick="reset()"
         class="bg-navy hover:bg-navyDeep text-white font-semibold py-2.5 px-8 rounded-xl transition-colors duration-200">
         Make another presentation
@@ -368,6 +374,7 @@
   <script>
     // ── State ────────────────────────────────────────────────────────────
     let currentJobId   = null;
+    let lastJobId      = null;  // kept after download for emailing
     let stepTimer      = null;
     let currentSlides  = [];   // live copy of slides (may be edited)
     let editMode       = false;
@@ -484,7 +491,8 @@
 
     // ── Email ────────────────────────────────────────────────────────────
     async function sendEmail() {
-      if (!currentJobId) return;
+      const jobId = lastJobId || currentJobId;
+      if (!jobId) return;
       const email = document.getElementById("emailInput").value.trim();
       if (!email) { document.getElementById("emailInput").focus(); return; }
 
@@ -493,7 +501,7 @@
       btn.disabled = true;
 
       try {
-        const res  = await fetch(`/email/${currentJobId}`, {
+        const res  = await fetch(`/email/${jobId}`, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify({ email, slides: currentSlides }),
@@ -1035,6 +1043,7 @@
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
+        lastJobId    = currentJobId;  // keep for emailing
         currentJobId = null;
         show("successCard");
 
