@@ -44,6 +44,19 @@ class C:
 
 FONT = "Calibri"
 
+# ── Colour themes ─────────────────────────────────────────────────────────────
+_THEMES: dict[str, dict] = {
+    "classic":  {"primary": (0x1B,0x3A,0x5C), "deep": (0x12,0x27,0x43), "accent": (0xE0,0x7B,0x39), "bg": (0xF8,0xF6,0xF2), "steel": (0x9E,0xC8,0xE0)},
+    "forest":   {"primary": (0x1B,0x4D,0x3E), "deep": (0x10,0x35,0x28), "accent": (0xD4,0xA0,0x17), "bg": (0xF2,0xF8,0xF2), "steel": (0x8B,0xC4,0xA8)},
+    "plum":     {"primary": (0x4A,0x1A,0x5C), "deep": (0x30,0x0D,0x3D), "accent": (0xB0,0x70,0xD0), "bg": (0xF9,0xF4,0xFC), "steel": (0xC0,0xA0,0xD8)},
+    "crimson":  {"primary": (0x7A,0x1A,0x2A), "deep": (0x55,0x0D,0x1A), "accent": (0xE0,0x90,0x30), "bg": (0xFD,0xF4,0xF4), "steel": (0xE0,0xA8,0xA8)},
+    "contrast": {"primary": (0x00,0x00,0x00), "deep": (0x1A,0x1A,0x1A), "accent": (0xFF,0xD7,0x00), "bg": (0xFF,0xFF,0xFF), "steel": (0xAA,0xAA,0xAA)},
+}
+
+def _get_theme(name: str) -> dict:
+    t = _THEMES.get(name, _THEMES["classic"])
+    return {k: RGBColor(*v) for k, v in t.items()}
+
 
 def _fetch_image(hint: str) -> Optional[io.BytesIO]:
     """Fetch a relevant landscape photo from Pexels. Returns None if unavailable."""
@@ -216,6 +229,14 @@ def build_pptx(payload: dict, output_path: str) -> None:
 
     # Blank layout (index 6) — we place everything manually
     blank = prs.slide_layouts[6]
+
+    # Apply colour theme
+    T          = _get_theme(payload.get("theme", "classic"))
+    C.navy     = T["primary"]
+    C.navyDeep = T["deep"]
+    C.amber    = T["accent"]
+    C.offWhite = T["bg"]
+    C.steelBlue= T["steel"]
 
     slides_data   = payload["slides"]
     title_slide   = next((s for s in slides_data if s["slide_type"] == "title"),   None)

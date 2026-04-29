@@ -38,9 +38,16 @@
   <header class="bg-navy text-white shadow-lg">
     <div class="max-w-3xl mx-auto px-6 py-5 flex items-center gap-4">
       <div class="w-1 h-10 bg-amber rounded-full flex-shrink-0"></div>
-      <div>
+      <div class="flex-1">
         <h1 class="text-2xl font-bold tracking-tight">SilverSlide Agent</h1>
         <p class="text-slate-300 text-sm mt-0.5">Senior-friendly presentations, generated in seconds</p>
+      </div>
+      <div class="flex items-center gap-3 ml-auto">
+        <span class="text-slate-300 text-sm hidden sm:inline">👤 {{ username }}</span>
+        <a href="/logout"
+           class="bg-white/10 hover:bg-white/20 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors duration-150 border border-white/20">
+          Sign out
+        </a>
       </div>
     </div>
   </header>
@@ -91,6 +98,18 @@
           <div class="flex items-center gap-3 pt-5">
             <input id="includeVideo" type="checkbox" checked class="w-4 h-4 accent-navy cursor-pointer" />
             <label for="includeVideo" class="text-sm font-medium text-slate-600 cursor-pointer">Include video slide</label>
+          </div>
+        </div>
+
+        <!-- Theme picker -->
+        <div class="mt-5">
+          <label class="block text-sm font-medium text-slate-600 mb-2">Colour theme</label>
+          <div class="flex gap-2 flex-wrap" id="themePicker">
+            <button type="button" onclick="selectTheme('classic')"  data-theme="classic"  class="theme-btn selected flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-navy   bg-navy   text-white   text-xs font-semibold">● Classic</button>
+            <button type="button" onclick="selectTheme('forest')"   data-theme="forest"   class="theme-btn flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:border-green-800"><span class="text-green-800">●</span> Forest</button>
+            <button type="button" onclick="selectTheme('plum')"     data-theme="plum"     class="theme-btn flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:border-purple-800"><span class="text-purple-800">●</span> Plum</button>
+            <button type="button" onclick="selectTheme('crimson')"  data-theme="crimson"  class="theme-btn flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:border-red-800"><span class="text-red-800">●</span> Crimson</button>
+            <button type="button" onclick="selectTheme('contrast')" data-theme="contrast" class="theme-btn flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:border-black"><span class="text-black">●</span> High Contrast</button>
           </div>
         </div>
       </details>
@@ -149,6 +168,12 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- ── SAVED DECKS ───────────────────────────────────────────────── -->
+    <div id="savedDecksSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <h2 class="font-semibold text-slate-800 mb-4 flex items-center gap-2">📁 Saved Decks</h2>
+      <div id="savedDecksList" class="space-y-2"></div>
     </div>
 
     <!-- ── LOADING CARD ────────────────────────────────────────────────── -->
@@ -237,22 +262,49 @@
 
       <!-- Speaking Script -->
       <div id="scriptSection" class="hidden bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <button onclick="toggleScript()"
-          class="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors">
-          <div class="flex items-center gap-2">
+        <div class="w-full flex items-center justify-between px-6 py-4">
+          <button onclick="toggleScript()" class="flex items-center gap-2 hover:opacity-75 transition-opacity">
             <span class="text-lg">📄</span>
             <span class="font-semibold text-slate-800">Speaking Script</span>
             <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full ml-1">click to expand</span>
-          </div>
-          <svg id="scriptChevron" class="w-4 h-4 text-slate-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-          </svg>
-        </button>
+            <svg id="scriptChevron" class="w-4 h-4 text-slate-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <button id="ttsBtn" onclick="toggleReading()"
+            class="flex items-center gap-1.5 text-xs font-semibold text-navy border border-navy px-3 py-1.5 rounded-lg hover:bg-navy hover:text-white transition-colors">
+            🔊 Read Aloud
+          </button>
+        </div>
         <div id="scriptBody" class="hidden border-t border-slate-100 px-6 py-5 space-y-5 max-h-[500px] overflow-y-auto">
           <p class="text-xs text-slate-400 italic">Read each section aloud as you present the corresponding slide.</p>
           <div id="scriptContent"></div>
         </div>
       </div>
+
+      <!-- Email + Save row -->
+      <div class="flex gap-2">
+        <div class="flex-1 flex gap-2">
+          <input id="emailInput" type="email" placeholder="Email the deck to…"
+            class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy"
+            onkeydown="if(event.key==='Enter') sendEmail()" />
+          <button onclick="sendEmail()" id="emailBtn"
+            class="bg-navy hover:bg-navyDeep text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-1.5 flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            <span id="emailBtnLabel">Send</span>
+          </button>
+        </div>
+        <button onclick="saveDeck()" id="saveBtn"
+          class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center gap-1.5 flex-shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+          </svg>
+          <span id="saveBtnLabel">Save</span>
+        </button>
+      </div>
+      <div id="emailStatus" class="hidden text-xs text-center py-1 rounded-lg"></div>
 
       <!-- Download button -->
       <button id="downloadBtn" onclick="downloadPptx()"
@@ -350,7 +402,181 @@
     }
 
     // Load news on page open
-    window.addEventListener("DOMContentLoaded", loadNews);
+    window.addEventListener("DOMContentLoaded", () => { loadNews(); loadSavedDecks(); });
+
+    // ── Theme picker ─────────────────────────────────────────────────────
+    let currentTheme = "classic";
+    const THEME_CSS = {
+      classic:  { primary: "#1B3A5C", accent: "#E07B39" },
+      forest:   { primary: "#1B4D3E", accent: "#D4A017" },
+      plum:     { primary: "#4A1A5C", accent: "#B070D0" },
+      crimson:  { primary: "#7A1A2A", accent: "#E09030" },
+      contrast: { primary: "#000000", accent: "#FFD700" },
+    };
+
+    function selectTheme(name) {
+      currentTheme = name;
+      document.querySelectorAll(".theme-btn").forEach(b => {
+        const active = b.dataset.theme === name;
+        b.classList.toggle("border-navy",   false);
+        b.classList.toggle("bg-navy",       false);
+        b.classList.toggle("text-white",    false);
+        b.classList.toggle("border-slate-200", !active);
+        b.classList.toggle("bg-white",      !active);
+        b.classList.toggle("text-slate-700",!active);
+        if (active) {
+          const c = THEME_CSS[name];
+          b.style.borderColor = c.primary;
+          b.style.background  = c.primary;
+          b.style.color       = "#fff";
+        } else {
+          b.style.borderColor = "";
+          b.style.background  = "";
+          b.style.color       = "";
+        }
+      });
+    }
+    // init
+    selectTheme("classic");
+
+    // ── Text-to-Speech ───────────────────────────────────────────────────
+    let ttsReading = false;
+
+    function toggleReading() {
+      if (ttsReading) {
+        speechSynthesis.cancel();
+        ttsReading = false;
+        document.getElementById("ttsBtn").innerHTML = "🔊 Read Aloud";
+        return;
+      }
+      // Collect all text paragraphs from the script
+      const paragraphs = [...document.querySelectorAll("#scriptContent p")]
+        .map(p => p.innerText.trim()).filter(Boolean);
+      if (!paragraphs.length) return;
+
+      const utterance = new SpeechSynthesisUtterance(paragraphs.join(". "));
+      utterance.rate  = 0.88;
+      utterance.pitch = 1.0;
+      utterance.onend = () => {
+        ttsReading = false;
+        document.getElementById("ttsBtn").innerHTML = "🔊 Read Aloud";
+      };
+      speechSynthesis.speak(utterance);
+      ttsReading = true;
+      document.getElementById("ttsBtn").innerHTML = "⏹ Stop";
+    }
+
+    // ── Email ────────────────────────────────────────────────────────────
+    async function sendEmail() {
+      if (!currentJobId) return;
+      const email = document.getElementById("emailInput").value.trim();
+      if (!email) { document.getElementById("emailInput").focus(); return; }
+
+      const btn = document.getElementById("emailBtn");
+      document.getElementById("emailBtnLabel").textContent = "Sending…";
+      btn.disabled = true;
+
+      try {
+        const res  = await fetch(`/email/${currentJobId}`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ email, slides: currentSlides }),
+        });
+        const json = await res.json();
+        const status = document.getElementById("emailStatus");
+        if (res.ok) {
+          status.className = "text-xs text-center py-1 rounded-lg bg-green-50 text-green-700";
+          status.textContent = "✓ " + json.message;
+        } else {
+          status.className = "text-xs text-center py-1 rounded-lg bg-red-50 text-red-700";
+          status.textContent = json.error;
+        }
+        status.classList.remove("hidden");
+        setTimeout(() => status.classList.add("hidden"), 5000);
+      } catch (e) {
+        alert("Email failed: " + e.message);
+      } finally {
+        document.getElementById("emailBtnLabel").textContent = "Send";
+        btn.disabled = false;
+      }
+    }
+
+    // ── Saved Decks ──────────────────────────────────────────────────────
+    async function loadSavedDecks() {
+      try {
+        const res   = await fetch("/decks");
+        const decks = await res.json();
+        renderSavedDecks(decks);
+      } catch { /* silent */ }
+    }
+
+    function renderSavedDecks(decks) {
+      const section = document.getElementById("savedDecksSection");
+      const list    = document.getElementById("savedDecksList");
+      if (!decks.length) { section.classList.add("hidden"); return; }
+      section.classList.remove("hidden");
+      list.innerHTML = decks.map(d => `
+        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 gap-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-slate-800 truncate">${esc(d.title)}</p>
+            <p class="text-xs text-slate-400 mt-0.5">${esc(d.saved_at)} · ${d.slide_count} slides</p>
+          </div>
+          <div class="flex gap-2 flex-shrink-0">
+            <button onclick="downloadSaved('${d.id}')"
+              class="text-xs font-semibold text-navy border border-navy px-3 py-1.5 rounded-lg hover:bg-navy hover:text-white transition-colors">
+              Download
+            </button>
+            <button onclick="deleteSaved('${d.id}', this)"
+              class="text-xs text-slate-400 hover:text-red-500 px-2 py-1.5 transition-colors">✕</button>
+          </div>
+        </div>`).join("");
+    }
+
+    async function saveDeck() {
+      if (!currentJobId) return;
+      const btn = document.getElementById("saveBtn");
+      document.getElementById("saveBtnLabel").textContent = "Saving…";
+      btn.disabled = true;
+      try {
+        const res  = await fetch(`/decks/save/${currentJobId}`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ slides: currentSlides }),
+        });
+        const json = await res.json();
+        if (res.ok) {
+          document.getElementById("saveBtnLabel").textContent = "Saved ✓";
+          loadSavedDecks();
+          setTimeout(() => { document.getElementById("saveBtnLabel").textContent = "Save"; btn.disabled = false; }, 2000);
+        } else {
+          alert(json.error);
+          document.getElementById("saveBtnLabel").textContent = "Save";
+          btn.disabled = false;
+        }
+      } catch (e) {
+        alert("Save failed: " + e.message);
+        document.getElementById("saveBtnLabel").textContent = "Save";
+        btn.disabled = false;
+      }
+    }
+
+    async function downloadSaved(deckId) {
+      const res  = await fetch(`/decks/${deckId}/download`, { method: "POST" });
+      if (!res.ok) { alert("Download failed"); return; }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url; a.download = "SilverSlide.pptx";
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+
+    async function deleteSaved(deckId, btn) {
+      await fetch(`/decks/${deckId}`, { method: "DELETE" });
+      btn.closest("div.flex").remove();
+      const list = document.getElementById("savedDecksList");
+      if (!list.children.length) document.getElementById("savedDecksSection").classList.add("hidden");
+    }
 
     const STEPS = [
       "Writing senior-friendly content with Claude…",
@@ -484,6 +710,7 @@
             audience:      document.getElementById("audience").value,
             tone:          document.getElementById("tone").value,
             include_video: document.getElementById("includeVideo").checked,
+            theme:         currentTheme,
           }),
         });
 
