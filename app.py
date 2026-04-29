@@ -492,6 +492,25 @@ def delete_deck(deck_id):
     return jsonify({"message": "Deleted"})
 
 
+@app.route("/decks/<deck_id>/load", methods=["POST"])
+def load_saved(deck_id):
+    """Load a saved deck back into cache so it can be previewed and edited."""
+    err = _require_login_json()
+    if err: return err
+    payload = _get_deck_db(deck_id, session["username"])
+    if not payload:
+        return jsonify({"error": "Deck not found."}), 404
+    job_id = str(uuid.uuid4())
+    _deck_cache[job_id] = payload
+    return jsonify({
+        "job_id": job_id,
+        "title":  payload.get("title", ""),
+        "theme":  payload.get("theme", "classic"),
+        "slides": payload.get("slides", []),
+        "video":  payload.get("video"),
+    })
+
+
 @app.route("/decks/<deck_id>/download", methods=["POST"])
 def download_saved(deck_id):
     err = _require_login_json()
